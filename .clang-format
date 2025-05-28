@@ -1,0 +1,8 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 90
+SeparateDefinitionBlocks: Always
+PointerAlignment: Left
+SortIncludes: false
+AlignAfterOpenBracket: Align
+AlwaysBreakTemplateDeclarations : Yes
