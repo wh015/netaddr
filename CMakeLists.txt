@@ -24,9 +24,9 @@ if(NOT MSVC)
             -g # to see the source code when annotating
         )
     endif()
-endif()
 
-add_compile_options(-msse4.2)
+    add_compile_options(-march=westmere)
+endif()
 
 set(BINARY_HEADERS_DIR "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}")
 set(SOURCE_HEADERS_DIR "${CMAKE_SOURCE_DIR}/include/${PROJECT_NAME}")
