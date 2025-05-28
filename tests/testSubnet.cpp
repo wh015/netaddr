@@ -89,12 +89,12 @@ TEST(Subnet, PublicData) {
     EXPECT_FALSE(ipv4.empty());
     EXPECT_TRUE(ipv4.v4());
     EXPECT_FALSE(ipv4.v6());
-    EXPECT_EQ(ipv4.prefix(), 24);
+    EXPECT_EQ(ipv4.cidr(), 24);
 
     EXPECT_FALSE(ipv6.empty());
     EXPECT_FALSE(ipv6.v4());
     EXPECT_TRUE(ipv6.v6());
-    EXPECT_EQ(ipv6.prefix(), 56);
+    EXPECT_EQ(ipv6.cidr(), 56);
 }
 
 TEST(Subnet, IPv4Masks) {
