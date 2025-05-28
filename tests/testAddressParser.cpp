@@ -1,13 +1,14 @@
 #include <gtest/gtest.h>
 
-#include <netaddr/AddressParser.h>
+#include <netaddr/parser4.h>
+#include <netaddr/parser6.h>
 
 using namespace netaddr;
 
-constexpr static AddressParser4 parser4;
-constexpr static AddressParser6 parser6;
+constexpr static Parser4 parser4;
+constexpr static Parser6 parser6;
 
-TEST(AddressParser4, IPv4Valid) {
+TEST(Parser4, IPv4Valid) {
     // clang-format off
     constexpr const char* valid[] = {
         "1.1.1.1",
@@ -24,19 +25,19 @@ TEST(AddressParser4, IPv4Valid) {
 
     for (auto s : valid) {
         struct in_addr sys;
-        IPv4Address own;
+        Raw own;
 
         // expecting system library does a valid conversion
         ASSERT_GT(inet_pton(AF_INET, s, &sys), 0)
             << "inet_pton() for " << s << " must not fail";
         ASSERT_EQ(parser4.parse(s, own), true)
             << "parse<true>() for " << s << " must not fail";
-        ASSERT_EQ(memcmp(&sys, &own, sizeof(struct in_addr)), 0)
+        ASSERT_EQ(memcmp(&sys, &own.data.v4.in_addr, sizeof(struct in_addr)), 0)
             << "results from parser and system for " << s << " must be the same";
     }
 }
 
-TEST(AddressParser4, IPv4Malformed) {
+TEST(Parser4, IPv4Malformed) {
     // clang-format off
     constexpr const char* invalid[] = {
         "a.b.c.d",
@@ -55,27 +56,27 @@ TEST(AddressParser4, IPv4Malformed) {
     // clang-format on
 
     for (auto s : invalid) {
-        IPv4Address addr;
+        Raw addr;
 
         ASSERT_EQ(parser4.parse(s, addr), false)
             << "parse() for " << s << " must not be succsessful";
     }
 }
 
-TEST(AddressParser4, IPv4Subsr) {
+TEST(Parser4, IPv4Subsr) {
     std::string_view full = "Hello darkness, 2134.55.22.61 my old friend";
     std::string_view sv = full.substr(17, 11);
     std::string s = std::string(sv);
 
     struct in_addr sys;
-    IPv4Address own;
+    Raw own;
 
     ASSERT_GT(inet_pton(AF_INET, s.data(), &sys), 0);
     ASSERT_EQ(parser4.parse(sv, own), true);
-    ASSERT_EQ(memcmp(&sys, &own, sizeof(struct in_addr)), 0);
+    ASSERT_EQ(memcmp(&sys, &own.data.v4.in_addr, sizeof(struct in_addr)), 0);
 }
 
-TEST(AddressParser6, IPv6Valid) {
+TEST(Parser6, IPv6Valid) {
     // clang-format off
     constexpr const char* valid[] = {
         "2001:db8:3333:4444:5555:6666:7777:8888",
@@ -97,7 +98,7 @@ TEST(AddressParser6, IPv6Valid) {
 
     for (auto s : valid) {
         struct in6_addr sys;
-        IPv6Address own;
+        Raw own;
 
         // expecting system library does a valid conversion
         ASSERT_GT(inet_pton(AF_INET6, s, &sys), 0)
@@ -109,7 +110,7 @@ TEST(AddressParser6, IPv6Valid) {
     }
 }
 
-TEST(AddressParser6, IPv6Malformed) {
+TEST(Parser6, IPv6Malformed) {
     // clang-format off
     constexpr const char* invalid[] = {
         "2001:db8:3333:44444:5555:6666:7777:8888",
@@ -132,20 +133,20 @@ TEST(AddressParser6, IPv6Malformed) {
     // clang-format on
 
     for (auto s : invalid) {
-        IPv6Address addr;
+        Raw addr;
 
         ASSERT_EQ(parser6.parse(s, addr), false)
             << "parse() for " << s << " must not be succsessful";
     }
 }
 
-TEST(AddressParser6, IPv6Subsr) {
+TEST(Parser6, IPv6Subsr) {
     std::string_view full = "Hello darkness, 32001:db8:3333:4444:5555::223 my old friend";
     std::string_view sv = full.substr(17, 27);
     std::string s = std::string(sv);
 
     struct in6_addr sys;
-    IPv6Address own;
+    Raw own;
 
     ASSERT_GT(inet_pton(AF_INET6, s.data(), &sys), 0);
     ASSERT_EQ(parser6.parse(sv, own), true);

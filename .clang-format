@@ -6,3 +6,4 @@ PointerAlignment: Left
 SortIncludes: false
 AlignAfterOpenBracket: Align
 AlwaysBreakTemplateDeclarations : Yes
+InsertNewlineAtEOF: true

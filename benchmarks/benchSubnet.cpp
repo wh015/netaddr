@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include <netaddr/Subnet.h>
+#include <netaddr/subnet.h>
 
 using namespace netaddr;
 
 // clang-format off
-constexpr std::string_view DATA4[] = {
+constexpr std::string_view BenchmarkData4[] = {
     "1.1.1.1",
     "2.22.99.130/32",
     "255.255.255.255",
@@ -18,7 +18,7 @@ constexpr std::string_view DATA4[] = {
     "0.0.0.0"
 };
 
-constexpr std::string_view DATA6[] = {
+constexpr std::string_view BenchmarkData6[] = {
     "2001:db8:3333:4444:5555:6666:7777:8888",
     "2001:db8:3333:4444:CCCC:DDDD:EEEE:FFFF/64",
     "::1234:5678",
@@ -33,36 +33,36 @@ constexpr std::string_view DATA6[] = {
 static auto makeVector46() {
     std::vector<Subnet> v;
 
-    for (auto item : DATA4) {
+    for (auto item : BenchmarkData4) {
         v.push_back(item);
     }
 
-    for (auto item : DATA6) {
+    for (auto item : BenchmarkData6) {
         v.push_back(item);
     }
 
     return v;
 }
 
-static void BM_Subnet4(benchmark::State& state) {
+static void benchmarkSubnet4(benchmark::State& state) {
     for (auto _ : state) {
-        for (auto item : DATA4) {
+        for (auto item : BenchmarkData4) {
             auto subnet = Subnet(item);
             benchmark::DoNotOptimize(subnet);
         }
     }
 }
 
-static void BM_Subnet6(benchmark::State& state) {
+static void benchmarkSubnet6(benchmark::State& state) {
     for (auto _ : state) {
-        for (auto item : DATA6) {
+        for (auto item : BenchmarkData6) {
             auto subnet = Subnet(item);
             benchmark::DoNotOptimize(subnet);
         }
     }
 }
 
-static void BM_SubnetContains(benchmark::State& state) {
+static void benchmarkSubnetContains(benchmark::State& state) {
     auto v = makeVector46();
 
     for (auto _ : state) {
@@ -75,7 +75,7 @@ static void BM_SubnetContains(benchmark::State& state) {
     }
 }
 
-static void BM_SubnetBelongs(benchmark::State& state) {
+static void benchmarkSubnetBelongs(benchmark::State& state) {
     auto v = makeVector46();
 
     for (auto _ : state) {
@@ -88,7 +88,7 @@ static void BM_SubnetBelongs(benchmark::State& state) {
     }
 }
 
-BENCHMARK(BM_Subnet4);
-BENCHMARK(BM_Subnet6);
-BENCHMARK(BM_SubnetContains);
-BENCHMARK(BM_SubnetBelongs);
+BENCHMARK(benchmarkSubnet4);
+BENCHMARK(benchmarkSubnet6);
+BENCHMARK(benchmarkSubnetContains);
+BENCHMARK(benchmarkSubnetBelongs);

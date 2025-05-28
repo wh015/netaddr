@@ -2,11 +2,12 @@ find_package(benchmark REQUIRED)
 
 include(CTest)
 
-set(TARGET_NAME enricher.bencmarks)
+set(TARGET_NAME netaddr.bencmarks)
 
 add_executable(${TARGET_NAME}
     main.cpp
-    benchAddressParser.cpp
+    benchParser4.cpp
+    benchParser6.cpp
     benchSubnet.cpp
 )
 

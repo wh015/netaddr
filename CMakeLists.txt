@@ -31,8 +31,10 @@ add_compile_options(-msse4.2)
 set(BINARY_HEADERS_DIR "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}")
 set(SOURCE_HEADERS_DIR "${CMAKE_SOURCE_DIR}/include/${PROJECT_NAME}")
 set(TARGET_HEADERS
-    "${SOURCE_HEADERS_DIR}/AddressParser.h"
-    "${SOURCE_HEADERS_DIR}/Subnet.h"
+    "${SOURCE_HEADERS_DIR}/raw.h"
+    "${SOURCE_HEADERS_DIR}/parser4.h"
+    "${SOURCE_HEADERS_DIR}/parser6.h"
+    "${SOURCE_HEADERS_DIR}/subnet.h"
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${TARGET_HEADERS})

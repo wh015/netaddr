@@ -1,17 +1,14 @@
 #pragma once
+#ifndef NETADDR_SUBNET_H_
+#define NETADDR_SUBNET_H_
 
-#include <netaddr/AddressParser.h>
-
-#include <cctype>
 #include <algorithm>
 #include <atomic>
-#include <cstring>
-#include <iomanip>
-#include <iostream>
 #include <limits>
-#include <sstream>
 #include <stdexcept>
-#include <string>
+
+#include <netaddr/parser4.h>
+#include <netaddr/parser6.h>
 
 namespace netaddr {
 
@@ -25,70 +22,57 @@ class Subnet {
 
     bool v6() const noexcept { return proto_ == Protocol::IPV6; };
 
-    auto addr4() const noexcept { return addr_.v4.in_addr; }
+    auto addr4() const noexcept { return addr_.data.v4.in_addr; }
 
-    auto addr6() const noexcept { return addr_.v6.in_addr; }
+    auto addr6() const noexcept { return addr_.data.v6.in_addr; }
 
-    auto mask4() const noexcept { return mask_.v4.in_addr; }
+    auto mask4() const noexcept { return mask_.data.v4.in_addr; }
 
-    auto mask6() const noexcept { return mask_.v6.in_addr; }
+    auto mask6() const noexcept { return mask_.data.v6.in_addr; }
 
     auto prefix() const noexcept {
         return (proto_ == Protocol::IPV6) ? prefix_ : (prefix_ - IPv4PrefixOffset);
     }
 
     bool operator==(const Subnet& other) const {
-        return (prefix_ == other.prefix_ && addr_.qword[0] == other.addr_.qword[0] &&
-                addr_.qword[1] == other.addr_.qword[1]);
+        return (addr_ == other.addr_ && prefix_ == other.prefix_);
     }
 
     bool operator<(const Subnet& other) const {
-        return (addr_.qword[0] < other.addr_.qword[0] ||
-                addr_.qword[1] < other.addr_.qword[1] || prefix_ < other.prefix_);
+        return (addr_ < other.addr_ || prefix_ < other.prefix_);
     }
 
     bool belongs(const Subnet& parent) const noexcept {
         // TODO: SSE
         auto& mask = parent.mask_;
         return (parent.prefix_ <= prefix_ && (parent.flags_ & flags_) &&
-                ((parent.addr_.qword[0] & mask.qword[0]) ==
-                 (addr_.qword[0] & mask.qword[0])) &&
-                ((parent.addr_.qword[1] & mask.qword[1]) ==
-                 (addr_.qword[1] & mask.qword[1])));
+                ((parent.addr_.data.qwords[0] & mask.data.qwords[0]) ==
+                 (addr_.data.qwords[0] & mask.data.qwords[0])) &&
+                ((parent.addr_.data.qwords[1] & mask.data.qwords[1]) ==
+                 (addr_.data.qwords[1] & mask.data.qwords[1])));
     }
 
     bool contains(const Subnet& child) const noexcept {
         // TODO: SSE
         return (child.prefix_ >= prefix_ && (child.flags_ & flags_) &&
-                ((child.addr_.qword[0] & mask_.qword[0]) ==
-                 (addr_.qword[0] & mask_.qword[0])) &&
-                ((child.addr_.qword[1] & mask_.qword[1]) ==
-                 (addr_.qword[1] & mask_.qword[1])));
+                ((child.addr_.data.qwords[0] & mask_.data.qwords[0]) ==
+                 (addr_.data.qwords[0] & mask_.data.qwords[0])) &&
+                ((child.addr_.data.qwords[1] & mask_.data.qwords[1]) ==
+                 (addr_.data.qwords[1] & mask_.data.qwords[1])));
     }
 
-    Subnet() {
-        mask_.qword[0] = mask_.qword[1] = 0;
-        addr_.qword[0] = addr_.qword[1] = 0;
-    };
+    Subnet() = default;
+
+    Subnet(const char* input) : Subnet(std::string_view{input}){};
 
     Subnet(const std::string_view input) : Subnet() {
         auto addr = split(input);
         parse(addr);
     }
 
-    Subnet(const char* input) : Subnet(std::string_view{input}){};
     ~Subnet() = default;
 
-    std::string dump() const {
-        std::ostringstream ss;
-
-        for (const auto byte : addr_.byte) {
-            ss << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
-               << std::uint32_t(byte);
-        }
-
-        return ss.str();
-    }
+    std::string dump() const { return addr_.dump() + "{" + mask_.dump() + "}"; }
 
   private:
     static constexpr Prefix IPv6MaxPrefix = 128;
@@ -97,28 +81,12 @@ class Subnet {
 
     using FlagsType = std::uint8_t;
 
-    union Address {
-        IPv6Array<std::uint8_t> byte;
-        IPv6Array<std::uint16_t> word;
-        IPv6Array<std::uint32_t> dword;
-        IPv6Array<std::uint64_t> qword;
-
-        struct {
-            struct in6_addr in_addr;
-        } v6;
-
-        struct {
-            // for transition described in RFC 4038
-            std::uint32_t padding[IPv4OffsetDword];
-            struct in_addr in_addr;
-        } v4;
-    };
-
     enum class Protocol : std::uint8_t {
         NONE = AF_UNSPEC,
         IPV4 = AF_INET,
         IPV6 = AF_INET6
     };
+
     enum class Flags : FlagsType {
         IPV4 = (1 << 0),
         IPV6 = (1 << 1),
@@ -132,16 +100,14 @@ class Subnet {
     }
 
     void mapping4() noexcept {
-        // map IPv4 to IPv6 according RFC4038
-        addr_.qword[0] = 0;
-        addr_.dword[2] = htonl(0xFFFF);
         prefix_ += IPv4PrefixOffset;
         flags_ |= static_cast<FlagsType>(Flags::MAPPED);
     }
 
     void mapping6() noexcept {
         static constexpr std::size_t prefix = 96;
-        if (prefix_ >= prefix && addr_.qword[0] == 0 && addr_.dword[2] == htonl(0xFFFF)) {
+        if (prefix_ >= prefix && addr_.data.qwords[0] == 0 &&
+            addr_.data.dwords[2] == htonl(0xFFFF)) {
             prefix_ = IPv6MaxPrefix;
             flags_ |= static_cast<FlagsType>(Flags::MAPPED);
         }
@@ -169,13 +135,13 @@ class Subnet {
     }
 
     bool parse4(std::string_view input) {
-        static constexpr AddressParser4 parser;
+        static constexpr Parser4 parser;
 
         if (prefix_ > IPv4MaxPrefix) {
             throw std::invalid_argument("subnet prefix for IPv4 is out of range");
         }
 
-        auto rc = parser.parse(input, addr_.dword[IPv4OffsetDword]);
+        auto rc = parser.parse(input, addr_);
         if (!rc) {
             throw std::invalid_argument("mailformed IPv4 address");
         }
@@ -188,13 +154,13 @@ class Subnet {
     }
 
     bool parse6(std::string_view input) {
-        static constexpr AddressParser6 parser;
+        static constexpr Parser6 parser;
 
         if (prefix_ > IPv6MaxPrefix) {
             throw std::invalid_argument("subnet prefix for IPv6 is out of range");
         }
 
-        auto rc = parser.parse(input, addr_.word);
+        auto rc = parser.parse(input, addr_);
         if (!rc) {
             throw std::invalid_argument("mailformed IPv6 address");
         }
@@ -213,24 +179,26 @@ class Subnet {
 
         // TODO: SSE
         for (; bits > IPv4MaxPrefix; bits -= IPv4MaxPrefix) {
-            mask_.dword[i++] = max;
+            mask_.data.dwords[i++] = max;
         }
-        mask_.dword[i] = bits < IPv4MaxPrefix ? htonl(~(max >> bits)) : max;
+        mask_.data.dwords[i] = bits < IPv4MaxPrefix ? htonl(~(max >> bits)) : max;
 
         // it's a bug in GCC 8.x
         // compiler puts a memory write operation above
         // for the last mask nonzero dword after the next AND operations
         std::atomic_thread_fence(std::memory_order_release);
 
-        addr_.qword[0] &= mask_.qword[0];
-        addr_.qword[1] &= mask_.qword[1];
+        addr_.data.qwords[0] &= mask_.data.qwords[0];
+        addr_.data.qwords[1] &= mask_.data.qwords[1];
     }
 
-    Address addr_;
-    Address mask_;
+    Raw addr_;
+    Raw mask_;
     Prefix prefix_ = 0;
     Protocol proto_ = Protocol::NONE;
     FlagsType flags_ = 0;
 };
 
 } // namespace netaddr
+
+#endif

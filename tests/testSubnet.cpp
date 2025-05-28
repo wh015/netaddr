@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <netaddr/Subnet.h>
+#include <netaddr/subnet.h>
 
 using namespace netaddr;
 
@@ -118,7 +118,7 @@ TEST(Subnet, IPv4Masks) {
             << "inet_pton() for " << item.first << " failed";
 
         ASSERT_EQ(memcmp(&sys, &own, sizeof(struct in_addr)), 0)
-            << "Subnet mask" << item.first << " doesn't match with parser result for "
+            << "Subnet mask " << item.first << " doesn't match with parser result for "
             << item.second;
     }
 }
@@ -144,7 +144,7 @@ TEST(Subnet, IPv6Masks) {
             << "inet_pton() for " << item.first << " failed";
 
         ASSERT_EQ(memcmp(&sys, &own, sizeof(struct in6_addr)), 0)
-            << "Subnet mask" << item.first << " doesn't match with parser result for "
+            << "Subnet mask " << item.first << " doesn't match with parser result for "
             << item.second;
     }
 }
@@ -169,7 +169,7 @@ TEST(Subnet, IPv4Addresses) {
             << "inet_pton() for " << item.first << " failed";
 
         ASSERT_EQ(memcmp(&sys, &own, sizeof(struct in_addr)), 0)
-            << "IPv4 Address" << item.first << " doesn't match with parser result for "
+            << "IPv4 Address " << item.first << " doesn't match with parser result for "
             << item.second;
     }
 }
@@ -195,7 +195,7 @@ TEST(Subnet, IPv6Addresses) {
             "inet_pton() for " << item.first << " failed";
 
         ASSERT_EQ(memcmp(&sys, &own, sizeof(struct in6_addr)), 0) <<
-            "Subnet mask" << item.first << " doesn't match with parser result for " << item.second;
+            "Subnet mask " << item.first << " doesn't match with parser result for " << item.second;
     }
 }
 
@@ -446,6 +446,7 @@ TEST(Subnet, Operators) {
     EXPECT_TRUE(Subnet("192.168.1.2/16") < Subnet("192.168.1.1/24"));
     EXPECT_TRUE(Subnet("2a02:06b8::2/48") < Subnet("2a02:06b8::1/56"));
 
-    auto s = Subnet("192.168.1.1").dump();
-    EXPECT_TRUE(s == "00000000000000000000FFFFC0A80101");
+    auto dump = Subnet("192.168.1.1").dump();
+    auto expected = "00000000000000000000FFFFC0A80101{FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF}";
+    EXPECT_TRUE(dump == expected);
 }

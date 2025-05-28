@@ -1,45 +1,24 @@
 #pragma once
+#ifndef NETADDR_PARSER4_H_
+#define NETADDR_PARSER4_H_
 
-#include <assert.h>
-
-#include <cctype>
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <cstring>
 #include <string>
-#ifdef WIN32
-#include <Ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#endif
 
-#include <immintrin.h>
-
-#include <optional>
+#include <netaddr/raw.h>
 
 namespace netaddr {
 
-static constexpr std::size_t IPv6Size = 16;
-static constexpr std::size_t IPv4Size = 4;
-static constexpr std::size_t IPv4OffsetDword = (IPv6Size - IPv4Size) / 4;
-
-template <typename A>
-using IPv6Array = std::array<A, IPv6Size / sizeof(A)>;
-using IPv6Address = IPv6Array<std::uint16_t>;
-using IPv4Address = std::uint32_t;
-
-class AddressParser4 {
+class Parser4 {
   public:
-    static bool parse(std::string_view input, IPv4Address& output) noexcept {
-        constexpr auto max = std::char_traits<char>::length("xxx.xxx.xxx.xxx");
+    static bool parse(std::string_view input, Raw& output) noexcept {
+        constexpr auto MaxInputLength = std::char_traits<char>::length("xxx.xxx.xxx.xxx");
         auto sz = input.size();
 
-        if (sz > max) {
+        if (sz > MaxInputLength) {
             return false;
         }
 
-        char buf[max + 1] = {0};
+        char buf[MaxInputLength + 1] = {0};
         memcpy(buf, input.data(), sz);
 
         auto* src = (const __m128i*)buf;
@@ -66,7 +45,7 @@ class AddressParser4 {
             return false;
         }
 
-        const std::uint8_t(&pattern)[16] = patterns[hashId];
+        const std::uint8_t(&pattern)[PatternsTableWidth] = patterns[hashId];
         const uint8_t* const patternPtr = &pattern[0];
         __m128i shuf = _mm_loadu_si128((const __m128i*)patternPtr);
         v = _mm_shuffle_epi8(v, shuf);
@@ -87,7 +66,8 @@ class AddressParser4 {
         checkMask &= 0x0000AA00; // the only lanes wanted
 
         // pack and we are done!
-        output = (IPv4Address)_mm_cvtsi128_si32(_mm_packus_epi16(acc, acc));
+        auto value = (Address4)_mm_cvtsi128_si32(_mm_packus_epi16(acc, acc));
+        output.set(value);
 
         int rc = length + checkMask - patternPtr[6];
         return (rc == 1);
@@ -202,98 +182,6 @@ class AddressParser4 {
     };
 };
 
-class AddressParser6 {
-  public:
-    static bool parse(std::string_view input, IPv6Address& output) noexcept {
-        static constexpr auto MaxPieces = sizeof(struct in6_addr) / sizeof(std::uint16_t);
-        static constexpr auto MaxPiecesSize = 4;
-
-        if (input.empty()) {
-            return false;
-        }
-
-        int pieceIndex = 0;
-        std::optional<int> compress{};
-        std::string_view::iterator pointer = input.begin();
-
-        output.fill(0);
-
-        if (input[0] == ':') {
-            if (input.size() == 1 || input[1] != ':') {
-                return false;
-            }
-            pointer += 2;
-            compress = ++pieceIndex;
-        }
-
-        while (pointer != input.end()) {
-            std::uint16_t value = 0, length = 0;
-
-            if (pieceIndex == MaxPieces) {
-                return false;
-            }
-
-            if (*pointer == ':') {
-                if (compress.has_value()) {
-                    return false;
-                }
-                ++pointer;
-                compress = ++pieceIndex;
-                continue;
-            }
-
-            while (length < MaxPiecesSize && pointer != input.end() &&
-                   isAsciiHexDigit(*pointer)) {
-                value = static_cast<uint16_t>(value * 0x10 + hexToBinary(*pointer));
-                ++pointer;
-                length++;
-            }
-
-            if ((pointer != input.end()) && (*pointer == ':')) {
-                ++pointer;
-                if (pointer == input.end()) {
-                    return false;
-                }
-            } else if (pointer != input.end()) {
-                return false;
-            }
-
-            output[pieceIndex] = htons(value);
-            pieceIndex++;
-        }
-
-        if (compress.has_value()) {
-            int swaps = pieceIndex - *compress;
-            pieceIndex = MaxPieces - 1;
-
-            while (pieceIndex != 0 && swaps > 0) {
-                std::swap(output[pieceIndex], output[*compress + swaps - 1]);
-                pieceIndex--;
-                swaps--;
-            }
-        } else if (pieceIndex != MaxPieces) {
-            return false;
-        }
-
-        return true;
-    }
-
-  private:
-    static constexpr std::uint8_t hexToBinaryTable_[] = {
-        0,  1,  2,  3,  4, 5, 6, 7, 8, 9, 0, 0,  0,  0,  0,  0,  0,  10, 11,
-        12, 13, 14, 15, 0, 0, 0, 0, 0, 0, 0, 0,  0,  0,  0,  0,  0,  0,  0,
-        0,  0,  0,  0,  0, 0, 0, 0, 0, 0, 0, 10, 11, 12, 13, 14, 15,
-    };
-
-    static constexpr std::uint8_t hexToBinary(const char c) noexcept {
-        auto index = c - '0';
-        assert(index < sizeof(hexToBinaryTable_));
-        return hexToBinaryTable_[index];
-    }
-
-    static constexpr bool isAsciiHexDigit(const char c) noexcept {
-        return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f');
-    }
-};
-
 } // namespace netaddr
+
+#endif
