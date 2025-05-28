@@ -178,7 +178,7 @@ class Subnet {
     }
 
     auto bitmask(Prefix value) const noexcept {
-        auto shift0 = _mm_cvtsi32_si128(value);
+        auto shift0 = _mm_cvtsi32_si128((int)value);
         auto shift1 = _mm_set1_epi64x(64);
         auto shift2 = _mm_set1_epi64x(128);
         auto shift3 = _mm_subs_epu16(shift1, shift0);
