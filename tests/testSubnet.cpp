@@ -77,7 +77,7 @@ TEST(Subnet, InvalidConstructors) {
     for (auto item : data) {
         Subnet subnet;
 
-        EXPECT_ANY_THROW(subnet == Subnet(item))
+        EXPECT_ANY_THROW(subnet = Subnet(item))
             << "There must be exception thrown in constructor for " << item;
     }
 }

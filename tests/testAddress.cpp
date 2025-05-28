@@ -77,7 +77,7 @@ TEST(Address, InvalidConstructors) {
     for (auto item : data) {
         Address address;
 
-        EXPECT_ANY_THROW(address == Address(item))
+        EXPECT_ANY_THROW(address = Address(item))
             << "There must be exception thrown in constructor for " << item;
     }
 }
