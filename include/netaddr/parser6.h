@@ -96,7 +96,7 @@ class Parser6 {
     };
 
     static constexpr std::uint8_t hexToBinary(const char c) noexcept {
-        auto index = c - '0';
+        std::size_t index = c - '0';
         assert(index < sizeof(hexToBinaryTable));
         return hexToBinaryTable[index];
     }

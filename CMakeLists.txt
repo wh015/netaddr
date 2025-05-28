@@ -26,6 +26,7 @@ if(NOT MSVC)
     endif()
 
     add_compile_options(-march=westmere)
+    add_compile_options(-Wall -Werror)
 endif()
 
 set(BINARY_HEADERS_DIR "${CMAKE_BINARY_DIR}/include/${PROJECT_NAME}")
