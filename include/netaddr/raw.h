@@ -34,7 +34,7 @@ struct Raw {
     Raw() noexcept {
         // help compiler here
         auto v0 = _mm_setzero_si128();
-        _mm_storeu_si128((__m128i *)&data, v0);
+        _mm_storeu_si128((__m128i*)&data, v0);
     }
 
     template <typename T>

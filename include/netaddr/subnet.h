@@ -3,8 +3,6 @@
 #define NETADDR_SUBNET_H_
 
 #include <algorithm>
-#include <atomic>
-#include <limits>
 #include <stdexcept>
 
 #include <netaddr/parser4.h>
@@ -99,7 +97,7 @@ class Subnet {
         constexpr auto MinInputLength = std::char_traits<char>::length("x.x.x.x");
 
         bool dot = false;
-        if(input.size() >= MinInputLength) {
+        if (input.size() >= MinInputLength) {
             dot |= (input[0] == '.');
             dot |= (input[1] == '.');
             dot |= (input[2] == '.');
@@ -181,24 +179,30 @@ class Subnet {
         return rc;
     }
 
+    auto bitmask(Prefix value) const noexcept {
+        auto shift0 = _mm_cvtsi32_si128(value);
+        auto shift1 = _mm_set1_epi64x(64);
+        auto shift2 = _mm_set1_epi64x(128);
+        auto shift3 = _mm_subs_epu16(shift1, shift0);
+        auto shift4 = _mm_subs_epu16(shift2, shift0);
+
+        auto mask0 = _mm_set_epi64x(-1, 0);
+        auto mask1 = _mm_set_epi64x(0, -1);
+        auto mask2 = _mm_sll_epi64(mask0, shift3);
+        auto mask3 = _mm_sll_epi64(mask1, shift4);
+        auto mask5 = _mm_or_si128(mask2, mask3);
+
+        auto shmask = _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+        return _mm_shuffle_epi8(mask5, shmask);
+    }
+
     void masking() noexcept {
-        constexpr auto max = std::numeric_limits<std::uint32_t>::max();
-        auto bits = prefix;
-        std::size_t i = 0;
+        auto mask0 = bitmask(prefix);
+        auto addr0 = _mm_loadu_si128((const __m128i*)&addr);
+        auto addr1 = _mm_and_si128(mask0, addr0);
 
-        // TODO: SSE
-        for (; bits > IPv4MaxPrefix; bits -= IPv4MaxPrefix) {
-            mask.data.dwords[i++] = max;
-        }
-        mask.data.dwords[i] = bits < IPv4MaxPrefix ? htonl(~(max >> bits)) : max;
-
-        // it's a bug in GCC 8.x
-        // compiler puts a memory write operation above
-        // for the last mask nonzero dword after the next AND operations
-        std::atomic_thread_fence(std::memory_order_release);
-
-        addr.data.qwords[0] &= mask.data.qwords[0];
-        addr.data.qwords[1] &= mask.data.qwords[1];
+        _mm_storeu_si128((__m128i*)&mask, mask0);
+        _mm_storeu_si128((__m128i*)&addr, addr1);
     }
 
     Raw addr;
