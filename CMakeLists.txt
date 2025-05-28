@@ -35,6 +35,7 @@ set(TARGET_HEADERS
     "${SOURCE_HEADERS_DIR}/parser4.h"
     "${SOURCE_HEADERS_DIR}/parser6.h"
     "${SOURCE_HEADERS_DIR}/subnet.h"
+    "${SOURCE_HEADERS_DIR}/address.h"
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${TARGET_HEADERS})

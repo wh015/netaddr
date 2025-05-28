@@ -7,6 +7,7 @@ include(CTest)
 add_executable(${TARGET_NAME}
     testAddressParser.cpp
     testSubnet.cpp
+    testAddress.cpp
 )
 
 target_link_libraries(${TARGET_NAME}

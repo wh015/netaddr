@@ -69,8 +69,10 @@ class Parser4 {
         auto value = (Address4)_mm_cvtsi128_si32(_mm_packus_epi16(acc, acc));
         output.set(value);
 
-        int rc = length + checkMask - patternPtr[6];
-        return (rc == 1);
+        bool rc = ((length + checkMask - patternPtr[6]) == 1);
+        rc &= (length == input.size());
+
+        return rc;
     }
 
   private:

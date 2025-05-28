@@ -66,6 +66,8 @@ class Subnet {
     Subnet(const char* input) : Subnet(std::string_view{input}){};
 
     Subnet(const std::string_view input) : Subnet() {
+        suggest(input);
+
         auto addr = split(input);
         parse(addr);
     }
@@ -74,7 +76,7 @@ class Subnet {
 
     std::string dump() const { return addr_.dump() + "{" + mask_.dump() + "}"; }
 
-  private:
+  protected:
     static constexpr Prefix IPv6MaxPrefix = 128;
     static constexpr Prefix IPv4MaxPrefix = 32;
     static constexpr Prefix IPv4PrefixOffset = IPv6MaxPrefix - IPv4MaxPrefix;
@@ -93,10 +95,11 @@ class Subnet {
         MAPPED = (1 << 2),
     };
 
-    Protocol suggest(std::string_view addr) const {
+    void suggest(std::string_view addr) {
         auto first4 = addr.substr(0, 4);
         auto it = first4.find('.', 0);
-        return (it == first4.npos) ? Protocol::IPV6 : Protocol::IPV4;
+        proto_ = (it == first4.npos) ? Protocol::IPV6 : Protocol::IPV4;
+        prefix_ = (proto_ == Protocol::IPV4) ? IPv4MaxPrefix : IPv6MaxPrefix;
     }
 
     void mapping4() noexcept {
@@ -119,9 +122,6 @@ class Subnet {
 
     std::string_view split(std::string_view input) {
         auto addr = input;
-
-        proto_ = suggest(input);
-        prefix_ = (proto_ == Protocol::IPV4) ? IPv4MaxPrefix : IPv6MaxPrefix;
 
         auto it = input.find('/');
         if (it != input.npos) {
