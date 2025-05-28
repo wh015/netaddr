@@ -32,8 +32,9 @@ using Address4 = std::uint32_t;
 
 struct Raw {
     Raw() noexcept {
-        // TODO: SSE or comment
-        memset(&data, 0, 16);
+        // help compiler here
+        auto v0 = _mm_setzero_si128();
+        _mm_storeu_si128((__m128i *)&data, v0);
     }
 
     template <typename T>
