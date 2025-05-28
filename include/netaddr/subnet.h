@@ -41,7 +41,6 @@ class Subnet {
     }
 
     bool belongs(const Subnet& parent) const noexcept {
-        // TODO: SSE
         auto& pmask = parent.mask;
         return (parent.prefix <= prefix && (parent.flags & flags) &&
                 ((parent.addr.data.qwords[0] & pmask.data.qwords[0]) ==
@@ -51,7 +50,6 @@ class Subnet {
     }
 
     bool contains(const Subnet& child) const noexcept {
-        // TODO: SSE
         return (child.prefix >= prefix && (child.flags & flags) &&
                 ((child.addr.data.qwords[0] & mask.data.qwords[0]) ==
                  (addr.data.qwords[0] & mask.data.qwords[0])) &&

@@ -53,7 +53,6 @@ struct Raw {
     }
 
     void set(const Address4& addr) noexcept {
-        // TODO: SSE
         // map IPv4 to IPv6 according RFC4038
         data.qwords[0] = 0;
         data.dwords[2] = htonl(0xFFFF);
@@ -71,13 +70,11 @@ struct Raw {
     // TODO: other getters if needs
 
     bool operator==(const Raw& other) const {
-        // TODO: SSE
         return (data.qwords[0] == other.data.qwords[0] &&
                 data.qwords[1] == other.data.qwords[1]);
     }
 
     bool operator<(const Raw& other) const {
-        // TODO: SSE
         return (data.qwords[0] < other.data.qwords[0] ||
                 data.qwords[1] < other.data.qwords[1]);
     }
