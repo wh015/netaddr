@@ -96,9 +96,17 @@ class Subnet {
     };
 
     void suggest(std::string_view addr) {
-        auto first4 = addr.substr(0, 4);
-        auto it = first4.find('.', 0);
-        proto_ = (it == first4.npos) ? Protocol::IPV6 : Protocol::IPV4;
+        constexpr auto MinInputLength = std::char_traits<char>::length("x.x.x.x");
+
+        bool dot = false;
+        if(addr.size() >= MinInputLength) {
+            dot |= (addr[0] == '.');
+            dot |= (addr[1] == '.');
+            dot |= (addr[2] == '.');
+            dot |= (addr[3] == '.');
+        }
+
+        proto_ = dot ? Protocol::IPV4 : Protocol::IPV6;
         prefix_ = (proto_ == Protocol::IPV4) ? IPv4MaxPrefix : IPv6MaxPrefix;
     }
 
